@@ -14,14 +14,15 @@ partialDependencePlot <- function(df, model, var, continuous_vars){
   names(categorical_baselines) = c()
   categorical_baselines = data.frame(t(unlist(categorical_baselines)))
   
-  #baseline row
-  baseline_row = cbind(continuous_baselines, categorical_baselines) %>%
-    select(-!!as.name(var))
   
   #get continuous baselines
   continuous_baselines = random_sample_selected %>%
   select(continuous_columns) %>%
   summarise_all(mean) %>% collect()
+  
+  #baseline row
+  baseline_row = cbind(continuous_baselines, categorical_baselines) %>%
+    select(-!!as.name(var))
   
   if(var %in% continuous_columns){
     min_var = df %>% 
@@ -40,7 +41,9 @@ partialDependencePlot <- function(df, model, var, continuous_vars){
     flexed_column = data.frame("test" = var_range)
     
     baseline_grid = baseline_row[rep(1,100),]
-    baseline_grid = cbind(baseline_grid, var_range)
+    #baseline_grid = cbind(baseline_grid, !!var = var_range)
+    baseline_grid = baseline_grid %>%
+      mutate(!!as.name(var) := var_range)
     #return(baseline_grid)
     
   }
@@ -50,6 +53,17 @@ partialDependencePlot <- function(df, model, var, continuous_vars){
   }
   
   # add prediction logic
+  #copy to spark data frame for prediction
+  #return(baseline_grid)
+  baseline_grid_prepped = prep_Data(baseline_grid)
+  baseline_grid_spark = sparklyr::copy_to(sc, baseline_grid_prepped, overwrite=TRUE)
+  prediction_grid = ml_predict(model, baseline_grid_spark)
+  # do this if variable is missing
+  prediction_grid = prediction_grid %>% 
+    collect() %>%
+    mutate(!!as.name(var) := var_range)
   
+  return(prediction_grid)
   
 }
+
