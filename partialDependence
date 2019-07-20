@@ -1,0 +1,27 @@
+#partial dependence plot constructor sketch
+continuous_columns = c('age', 'equity', 'fico_score_at_origination', 'credit_burnout', 'uryrchg', 'hpiyrchg', 'num_prev_cure')
+myColList = random_sample_selected %>% colnames()
+categorical_list = myColList[!(myColList %in% continuous_columns)]
+#random_sample %>% select(!!as.name(continuous_columns)) %>% summarise_all(mean)
+
+#get categorical baselines
+categorical_baselines = list()
+for(i in categorical_list){
+  categorical_baselines[[i]] = get_CategoricalMode(random_sample_selected, i)
+}
+names(categorical_baselines) = c()
+categorical_baselines = data.frame(t(unlist(categorical_baselines)))
+
+#get continuous baselines
+continuous_baselines = random_sample_selected %>%
+  select(continuous_columns) %>%
+  summarise_all(mean) %>% collect()
+
+#build baseline grid
+#if variable is continuous then test at ~100 points
+
+#else if variable is categorical test at all categories
+
+baseline_row = cbind(continuous_baselines, categorical_baselines)
+baseline_grid = baseline_row[rep(1, 100),]
+
