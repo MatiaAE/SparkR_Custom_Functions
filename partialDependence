@@ -1,27 +1,55 @@
-#partial dependence plot constructor sketch
-continuous_columns = c('age', 'equity', 'fico_score_at_origination', 'credit_burnout', 'uryrchg', 'hpiyrchg', 'num_prev_cure')
-myColList = random_sample_selected %>% colnames()
-categorical_list = myColList[!(myColList %in% continuous_columns)]
-#random_sample %>% select(!!as.name(continuous_columns)) %>% summarise_all(mean)
-
-#get categorical baselines
-categorical_baselines = list()
-for(i in categorical_list){
-  categorical_baselines[[i]] = get_CategoricalMode(random_sample_selected, i)
-}
-names(categorical_baselines) = c()
-categorical_baselines = data.frame(t(unlist(categorical_baselines)))
-
-#get continuous baselines
-continuous_baselines = random_sample_selected %>%
+partialDependencePlot <- function(df, model, var, continuous_vars){
+  
+  continuous_columns = continuous_vars
+  #get all columns
+  myColList = df %>% colnames()
+  #get categorical columns
+  categorical_list = myColList[!(myColList %in% continuous_columns)]
+  
+  #get categoricla baselines
+  categorical_baselines = list()
+  for(i in categorical_list){
+    categorical_baselines[[i]] = get_CategoricalMode(random_sample_selected, i)
+  }
+  names(categorical_baselines) = c()
+  categorical_baselines = data.frame(t(unlist(categorical_baselines)))
+  
+  #baseline row
+  baseline_row = cbind(continuous_baselines, categorical_baselines) %>%
+    select(-!!as.name(var))
+  
+  #get continuous baselines
+  continuous_baselines = random_sample_selected %>%
   select(continuous_columns) %>%
   summarise_all(mean) %>% collect()
-
-#build baseline grid
-#if variable is continuous then test at ~100 points
-
-#else if variable is categorical test at all categories
-
-baseline_row = cbind(continuous_baselines, categorical_baselines)
-baseline_grid = baseline_row[rep(1, 100),]
-
+  
+  if(var %in% continuous_columns){
+    min_var = df %>% 
+      select(!!as.name(var)) %>% 
+      summarise_all(min) %>% 
+      collect() %>%
+      unlist()
+    
+    max_var = df %>% 
+      select(!!as.name(var)) %>% 
+      summarise_all(max) %>% 
+      collect() %>% 
+      unlist()
+    
+    var_range = seq(from = min_var, to = max_var, length.out=100)
+    flexed_column = data.frame("test" = var_range)
+    
+    baseline_grid = baseline_row[rep(1,100),]
+    baseline_grid = cbind(baseline_grid, var_range)
+    #return(baseline_grid)
+    
+  }
+  else{
+    #add categorical logic
+    
+  }
+  
+  # add prediction logic
+  
+  
+}
