@@ -1,0 +1,28 @@
+AUC <- function(model, raw_data){
+  raw_data_imputed = impute_Data(raw_data)
+  raw_data_prepped = prep_Data(raw_data_imputed)
+  raw_data_pred = sparklyr::ml_predict(model, raw_data_prepped)
+  #return(raw_data_pred)
+  
+  
+  
+  #pos = raw_data_pred %>% filter(event ==1) %>% select(probability_1) %>% sdf_sample(fraction=.2, replacement=TRUE) %>% collect()
+  pos = raw_data_pred %>% filter(event ==1) %>% select(probability_1)
+  pos_rows = pos %>% sparklyr::sdf_nrow()
+  pos_sample_frac = (10000/pos_rows)+.001
+  pos = pos %>% sdf_sample(fraction = pos_sample_frac, replacement = TRUE) %>% collect()
+  
+  #neg = raw_data_pred %>% filter(event ==0) %>% select(probability_1) %>% sdf_sample(fraction=.2, replacement=TRUE) %>% collect()
+  neg = raw_data_pred %>% filter(event ==0) %>% select(probability_1)
+  neg_rows = neg %>% sparklyr::sdf_nrow()
+  neg_sample_frac = (10000/neg_rows)+.001
+  neg = neg %>% sdf_sample(fraction = neg_sample_frac, replacement = TRUE) %>% collect()
+
+  pos = pos[1:10000,]
+  neg = neg[1:10000,]
+  
+
+  return( (sum(pos > neg) + sum(pos==neg)/2) / 10000 )
+  
+  
+}
